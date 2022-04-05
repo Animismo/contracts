@@ -8,6 +8,7 @@ import { proxyCommand } from './commands/proxy'
 import { protocolCommand } from './commands/protocol'
 import { contractsCommand } from './commands/contracts'
 import { airdropCommand } from './commands/airdrop'
+import { bridgeCommand } from './commands/bridge'
 
 import { cliOpts } from './defaults'
 
@@ -34,5 +35,6 @@ yargs
   .command(protocolCommand)
   .command(contractsCommand)
   .command(airdropCommand)
+  .command(bridgeCommand)
   .demandCommand(1, 'Choose a command from the above list')
   .help().argv
