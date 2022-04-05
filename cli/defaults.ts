@@ -8,6 +8,7 @@ export const local = {
   graphConfigPath: './graph.config.yml',
   accountNumber: '0',
   arbitrumAddressBookPath: './arbitrum-addresses.json',
+  arbProviderUrl: 'https://rinkeby.arbitrum.io/rpc',
 }
 
 export const defaultOverrides: Overrides = {
@@ -63,5 +64,12 @@ export const cliOpts = {
     type: 'string',
     group: 'Config',
     default: local.arbitrumAddressBookPath,
+  },
+  l2ProviderUrl: {
+    alias: 'l2-provider-url',
+    description: 'The URL of an Arbitrum provider (only for bridge commands)',
+    type: 'string',
+    group: 'Arbitrum',
+    default: local.arbProviderUrl,
   },
 } as { [key: string]: Options }
