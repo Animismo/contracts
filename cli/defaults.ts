@@ -7,6 +7,7 @@ export const local = {
   addressBookPath: './addresses.json',
   graphConfigPath: './graph.config.yml',
   accountNumber: '0',
+  arbitrumAddressBookPath: './arbitrum-addresses.json',
 }
 
 export const defaultOverrides: Overrides = {
@@ -55,5 +56,12 @@ export const cliOpts = {
     description: "Deploy contract even if it's already deployed",
     type: 'boolean',
     default: false,
+  },
+  arbitrumAddressBook: {
+    alias: 'arb-address-book',
+    description: 'The path to the address book file for Arbitrum deployments',
+    type: 'string',
+    group: 'Config',
+    default: local.arbitrumAddressBookPath,
   },
 } as { [key: string]: Options }
