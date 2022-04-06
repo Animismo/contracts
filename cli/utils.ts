@@ -5,6 +5,9 @@ import { loadArtifact } from './artifacts'
 
 const l2ChainIds = [42161, 421611]
 
+export const nodeInterfaceAddress = '0x00000000000000000000000000000000000000C8'
+export const arbRetryableTxAddress = '0x000000000000000000000000000000000000006E'
+
 export const contractAt = (
   contractName: string,
   contractAddress: string,
@@ -16,8 +19,8 @@ export const contractAt = (
 export const getProvider = (providerUrl: string, network?: number): providers.JsonRpcProvider =>
   new providers.JsonRpcProvider(providerUrl, network)
 
-export const chainIdIsL2 = (chainId: number) => {
-  return l2ChainIds.includes(chainId)
+export const chainIdIsL2 = (chainId: number | string) => {
+  return l2ChainIds.includes(Number(chainId))
 }
 
 export const providerNetworkIsL2 = (signerOrProvider: Signer | providers.Provider) => {
