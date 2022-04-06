@@ -4,11 +4,10 @@ import { getContractAt, getProvider, sendTransaction, toGRT } from '../../networ
 import { BigNumber, Contract, providers, utils } from 'ethers'
 import { parseEther } from '@ethersproject/units'
 import { L1TransactionReceipt, L1ToL2MessageStatus } from '@arbitrum/sdk'
+import { nodeInterfaceAddress, arbRetryableTxAddress, chainIdIsL2 } from '../../utils'
 
 const maxSubmissionPriceIncreasePct = 400
 const maxGasIncreasePct = 50
-const nodeInterfaceAddress = '0x00000000000000000000000000000000000000C8'
-const arbRetryableTxAddress = '0x000000000000000000000000000000000000006E'
 
 const percentIncrease = (val: BigNumber, increase: number): BigNumber => {
   return val.add(val.mul(increase).div(100))
@@ -17,6 +16,10 @@ const percentIncrease = (val: BigNumber, increase: number): BigNumber => {
 export const sendToL2 = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Sending tokens to L2 <<<\n`)
   const l2Provider = getProvider(cliArgs.l2ProviderUrl)
+  const l2ChainId = (await l2Provider.getNetwork()).chainId
+  if (chainIdIsL2(cli.chainId) || !chainIdIsL2(l2ChainId)) {
+    throw new Error('Please use an L1 provider in --provider-url, and an L2 provider in --l2-provider-url')
+  }
   const gateway = cli.contracts['L1GraphTokenGateway']
   const l1GRT = cli.contracts['GraphToken']
   const l1GRTAddress = l1GRT.address
