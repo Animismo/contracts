@@ -2,16 +2,7 @@ import { loadEnv, CLIArgs, CLIEnvironment } from '../../env'
 import { logger } from '../../logging'
 import { getAddressBook } from '../../address-book'
 import { sendTransaction } from '../../network'
-import { chainIdIsL2 } from '../../utils'
-
-const l1ToL2ChainIdMap = {
-  '1': '42161',
-  '4': '421611'
-}
-const l2ToL1ChainIdMap = {
-  '42161': '1',
-  '421611': '4'
-}
+import { chainIdIsL2, l1ToL2ChainIdMap, l2ToL1ChainIdMap } from '../../utils'
 
 export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): Promise<void> => {
   logger.info(`>>> Setting L1 Bridge Configuration <<<\n`)
