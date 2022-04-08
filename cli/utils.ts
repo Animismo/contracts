@@ -9,7 +9,7 @@ export const l1ToL2ChainIdMap = {
   '5': '421612'
 }
 
-export const l2ChainIds = Object.values(l1ToL2ChainIdMap)
+export const l2ChainIds = Object.values(l1ToL2ChainIdMap).map(Number)
 export const l2ToL1ChainIdMap = Object.fromEntries(Object.entries(l1ToL2ChainIdMap).map(([k, v]) => [v, k]))
 
 export const nodeInterfaceAddress = '0x00000000000000000000000000000000000000C8'
