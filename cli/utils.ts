@@ -3,7 +3,14 @@ import { Contract, Wallet, providers, Signer } from 'ethers'
 
 import { loadArtifact } from './artifacts'
 
-const l2ChainIds = [42161, 421611]
+export const l1ToL2ChainIdMap = {
+  '1': '42161',
+  '4': '421611',
+  '5': '421612'
+}
+
+export const l2ChainIds = Object.values(l1ToL2ChainIdMap)
+export const l2ToL1ChainIdMap = Object.fromEntries(Object.entries(l1ToL2ChainIdMap).map(([k, v]) => [v, k]))
 
 export const nodeInterfaceAddress = '0x00000000000000000000000000000000000000C8'
 export const arbRetryableTxAddress = '0x000000000000000000000000000000000000006E'
