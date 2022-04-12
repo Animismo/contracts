@@ -62,11 +62,14 @@ export const loadContracts = (
 ): NetworkContracts => {
   const contracts = {}
   for (const contractName of addressBook.listEntries()) {
-    const contractEntry = addressBook.getEntry(contractName)
     try {
       contracts[contractName] = loadAddressBookContract(contractName, addressBook, signerOrProvider)
       // On L2 networks, we alias L2GraphToken as GraphToken
-      if (signerOrProvider && providerNetworkIsL2(signerOrProvider) && contractName == 'L2GraphToken') {
+      if (
+        signerOrProvider &&
+        providerNetworkIsL2(signerOrProvider) &&
+        contractName == 'L2GraphToken'
+      ) {
         contracts['GraphToken'] = contracts[contractName]
       }
     } catch (err) {

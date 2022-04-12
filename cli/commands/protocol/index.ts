@@ -18,8 +18,12 @@ export const protocolCommand = {
   command: 'protocol',
   describe: 'Graph protocol configuration',
   builder: (yargs: Argv): yargs.Argv => {
-    return yargs.command(getCommand).command(setCommand).command(listCommand)
-      .command(configureL1BridgeCommand).command(configureL2BridgeCommand)
+    return yargs
+      .command(getCommand)
+      .command(setCommand)
+      .command(listCommand)
+      .command(configureL1BridgeCommand)
+      .command(configureL2BridgeCommand)
   },
   handler: (): void => {
     yargs.showHelp()
