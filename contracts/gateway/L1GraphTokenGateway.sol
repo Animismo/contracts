@@ -65,8 +65,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         require(msg.sender == address(bridge), "NOT_FROM_BRIDGE");
 
         // and the outbox reports that the L2 address of the sender is the counterpart gateway
-        address l2ToL1Sender = IOutbox(bridge.activeOutbox())
-            .l2ToL1Sender();
+        address l2ToL1Sender = IOutbox(bridge.activeOutbox()).l2ToL1Sender();
         require(l2ToL1Sender == l2Counterpart, "ONLY_COUNTERPART_GATEWAY");
         _;
     }
@@ -130,7 +129,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         uint256 _maxGas,
         uint256 _gasPriceBid,
         bytes calldata _data
-    ) external override payable notPaused returns (bytes memory) {
+    ) external payable override notPaused returns (bytes memory) {
         IGraphToken token = graphToken();
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
         require(_amount > 0, "INVALID_ZERO_AMOUNT");
@@ -154,16 +153,14 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                     uint256 expectedEth = maxSubmissionCost + (_maxGas * _gasPriceBid);
                     require(msg.value == expectedEth, "WRONG_ETH_VALUE");
                 }
-                outboundCalldata = getOutboundCalldata(
-                    _l1Token,
-                    from,
-                    _to,
-                    _amount,
-                    extraData
-                );
+                outboundCalldata = getOutboundCalldata(_l1Token, from, _to, _amount, extraData);
             }
             {
-                L2GasParams memory gasParams = L2GasParams(maxSubmissionCost, _maxGas, _gasPriceBid);
+                L2GasParams memory gasParams = L2GasParams(
+                    maxSubmissionCost,
+                    _maxGas,
+                    _gasPriceBid
+                );
                 // transfer tokens to escrow
                 token.transferFrom(from, address(this), _amount);
                 seqNum = sendTxToL2(
@@ -198,7 +195,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         address _to,
         uint256 _amount,
         bytes calldata _data
-    ) external override payable notPaused onlyL2Counterpart {
+    ) external payable override notPaused onlyL2Counterpart {
         IGraphToken token = graphToken();
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
         (uint256 exitNum, ) = abi.decode(_data, (uint256, bytes));
@@ -238,10 +235,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         }
         // User-encoded data contains the max retryable ticket submission cost
         // and additional L2 calldata
-        (maxSubmissionCost, extraData) = abi.decode(
-            extraData,
-            (uint256, bytes)
-        );
+        (maxSubmissionCost, extraData) = abi.decode(extraData, (uint256, bytes));
     }
 
     /**
@@ -280,7 +274,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
      * @param l1ERC20 address of L1 GRT contract
      * @return L2 address of the bridged GRT token
      */
-    function calculateL2TokenAddress(address l1ERC20) external override view returns (address) {
+    function calculateL2TokenAddress(address l1ERC20) external view override returns (address) {
         IGraphToken token = graphToken();
         if (l1ERC20 != address(token)) {
             return address(0);

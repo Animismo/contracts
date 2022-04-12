@@ -44,7 +44,7 @@ contract Managed {
         require(!controller.partialPaused(), "Partial-paused");
     }
 
-    function _notPaused() internal virtual view {
+    function _notPaused() internal view virtual {
         require(!controller.paused(), "Paused");
     }
 

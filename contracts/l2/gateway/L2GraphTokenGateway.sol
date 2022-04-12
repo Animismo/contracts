@@ -67,10 +67,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * gateway on L1.
      */
     modifier onlyL1Counterpart() {
-        require(
-            msg.sender == L1ToL2Alias(l1Counterpart),
-            "ONLY_COUNTERPART_GATEWAY"
-        );
+        require(msg.sender == l1ToL2Alias(l1Counterpart), "ONLY_COUNTERPART_GATEWAY");
         _;
     }
 
@@ -131,7 +128,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         uint256, // unused on L2
         uint256, // unused on L2
         bytes calldata _data
-    ) public override payable notPaused returns (bytes memory) {
+    ) public payable override notPaused returns (bytes memory) {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(_amount > 0, "INVALID_ZERO_AMOUNT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
@@ -183,7 +180,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param l1ERC20 address of L1 GRT contract
      * @return L2 address of the bridged GRT token
      */
-    function calculateL2TokenAddress(address l1ERC20) public override view returns (address) {
+    function calculateL2TokenAddress(address l1ERC20) public view override returns (address) {
         if (l1ERC20 != l1GRT) {
             return address(0);
         }
@@ -206,7 +203,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
         address _to,
         uint256 _amount,
         bytes calldata // _data unused in L2
-    ) external override payable notPaused onlyL1Counterpart {
+    ) external payable override notPaused onlyL1Counterpart {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
 
@@ -269,11 +266,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _l1Address The L1 address
      * @return _l2Address the L2 alias of _l1Address
      */
-    function L1ToL2Alias(address _l1Address)
-        internal
-        pure
-        returns (address _l2Address)
-    {
+    function l1ToL2Alias(address _l1Address) internal pure returns (address _l2Address) {
         _l2Address = address(uint160(_l1Address) + L2_ADDRESS_OFFSET);
     }
 }

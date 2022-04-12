@@ -12,7 +12,6 @@ import "../governance/Managed.sol";
  * @dev This includes everything that's shared between the L1 and L2 sides of the bridge.
  */
 abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITokenGateway {
-
     /**
      * @dev Check if the caller is the Controller's governor or this contract's pause guardian.
      */
@@ -37,7 +36,7 @@ abstract contract GraphTokenGateway is GraphUpgradeable, Pausable, Managed, ITok
      * @dev Override the default pausing from Managed to allow pausing this
      * particular contract instead of pausing from the Controller.
      */
-    function _notPaused() internal override view {
+    function _notPaused() internal view override {
         require(!_paused, "Paused (contract)");
     }
 

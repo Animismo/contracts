@@ -9,7 +9,6 @@ import "../../arbitrum/IBridge.sol";
  * @dev This contract implements Arbitrum's IBridge interface for testing purposes
  */
 contract BridgeMock is IBridge {
-
     // Address of the (mock) Arbitrum Inbox
     address public inbox;
     // Address of the (mock) Arbitrum Outbox
@@ -34,7 +33,14 @@ contract BridgeMock is IBridge {
     ) external payable override returns (uint256) {
         messageIndex = messageIndex + 1;
         inboxAccs.push(keccak256(abi.encodePacked(inbox, kind, sender, messageDataHash)));
-        emit MessageDelivered(messageIndex, inboxAccs[messageIndex-1], msg.sender, kind, sender, messageDataHash);
+        emit MessageDelivered(
+            messageIndex,
+            inboxAccs[messageIndex - 1],
+            msg.sender,
+            kind,
+            sender,
+            messageDataHash
+        );
         return messageIndex;
     }
 
@@ -52,6 +58,7 @@ contract BridgeMock is IBridge {
     ) external override returns (bool success, bytes memory returnData) {
         require(outbox == msg.sender, "NOT_FROM_OUTBOX");
 
+        // solhint-disable-next-line avoid-low-level-calls
         (success, returnData) = destAddr.call{ value: amount }(data);
         emit BridgeCallTriggered(msg.sender, destAddr, amount, data);
     }

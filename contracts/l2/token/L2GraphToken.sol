@@ -28,7 +28,12 @@ import "../../governance/Governed.sol";
  * initializer functions and upgradeable OpenZeppelin contracts instead of
  * the original's constructor + non-upgradeable approach.
  */
-contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20Upgradeable, ERC20BurnableUpgradeable {
+contract GraphTokenUpgradeable is
+    GraphUpgradeable,
+    Governed,
+    ERC20Upgradeable,
+    ERC20BurnableUpgradeable
+{
     using SafeMath for uint256;
 
     // -- EIP712 --
@@ -49,6 +54,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20Upgradeable, 
 
     // -- State --
 
+    // solhint-disable-next-line var-name-mixedcase
     bytes32 private DOMAIN_SEPARATOR;
     mapping(address => bool) private _minters;
     mapping(address => uint256) public nonces;
@@ -192,6 +198,7 @@ contract GraphTokenUpgradeable is GraphUpgradeable, Governed, ERC20Upgradeable, 
      */
     function _getChainID() private pure returns (uint256) {
         uint256 id;
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             id := chainid()
         }
@@ -228,6 +235,7 @@ contract L2GraphToken is GraphTokenUpgradeable, IArbToken {
         require(msg.sender == gateway, "NOT_GATEWAY");
         _;
     }
+
     /**
      * @dev L2 Graph Token Contract initializer.
      * @param owner Governance address that owns this contract

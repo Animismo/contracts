@@ -10,7 +10,6 @@ import "../../arbitrum/IBridge.sol";
  * @dev This contract implements (a subset of) Arbitrum's IOutbox interface for testing purposes
  */
 contract OutboxMock is IOutbox {
-
     // Context of an L2-to-L1 function call
     struct L2ToL1Context {
         uint128 l2Block;
@@ -79,9 +78,7 @@ contract OutboxMock is IOutbox {
     /**
      * @dev Unimplemented in this mock
      */
-    function processOutgoingMessages(bytes calldata, uint256[] calldata)
-        external override pure
-    {
+    function processOutgoingMessages(bytes calldata, uint256[] calldata) external pure override {
         revert("Unimplemented");
     }
 
@@ -89,7 +86,7 @@ contract OutboxMock is IOutbox {
      * @dev Check whether an outbox entry for a message exists.
      * This mock returns always true.
      */
-    function outboxEntryExists(uint256) external override pure returns (bool) {
+    function outboxEntryExists(uint256) external pure override returns (bool) {
         return true;
     }
 

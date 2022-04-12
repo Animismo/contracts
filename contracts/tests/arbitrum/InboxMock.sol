@@ -10,10 +10,11 @@ import "../../arbitrum/IInbox.sol";
  */
 contract InboxMock is IInbox {
     // Offset used when calculating the L2 alias of an L1 address
-    uint160 constant offset = uint160(0x1111000000000000000000000000000000001111);
+    uint160 internal constant OFFSET = uint160(0x1111000000000000000000000000000000001111);
     // Type indicator for a standard L2 message
     uint8 internal constant L2_MSG = 3;
     // Type indicator for a retryable ticket message
+    // solhint-disable-next-line const-name-snakecase
     uint8 internal constant L1MessageType_submitRetryableTx = 9;
     // Address of the Bridge (mock) contract
     IBridge public override bridge;
@@ -60,7 +61,7 @@ contract InboxMock is IInbox {
         address,
         uint256,
         bytes calldata
-    ) external  pure override returns (uint256) {
+    ) external pure override returns (uint256) {
         revert("Unimplemented");
     }
 
@@ -96,7 +97,7 @@ contract InboxMock is IInbox {
      * @return l2Address L2 address as viewed in msg.sender
      */
     function applyL1ToL2Alias(address l1Address) internal pure returns (address l2Address) {
-        l2Address = address(uint160(l1Address) + offset);
+        l2Address = address(uint160(l1Address) + OFFSET);
     }
 
     /**
