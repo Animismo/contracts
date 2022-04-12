@@ -6,5 +6,4 @@ pragma solidity ^0.7.6;
 
 import "arbos-precompiles/arbos/builtin/ArbRetryableTx.sol";
 
-abstract contract ArbRetryableTxStub is ArbRetryableTx {
-}
+abstract contract ArbRetryableTxStub is ArbRetryableTx {}
