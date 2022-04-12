@@ -8,9 +8,12 @@ export const bridgeCommand = {
   command: 'bridge',
   describe: 'Graph token bridge actions.',
   builder: (yargs: Argv): yargs.Argv => {
-    return yargs.option('-l', cliOpts.l2ProviderUrl)
-      .command(sendToL2Command).command(redeemSendToL2Command)
-      .command(startSendToL1Command).command(finishSendToL1Command)
+    return yargs
+      .option('-l', cliOpts.l2ProviderUrl)
+      .command(sendToL2Command)
+      .command(redeemSendToL2Command)
+      .command(startSendToL1Command)
+      .command(finishSendToL1Command)
       .command(waitFinishSendToL1Command)
   },
   handler: (): void => {
