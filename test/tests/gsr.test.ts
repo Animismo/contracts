@@ -78,7 +78,7 @@ describe('Gdai and Gsr', () => {
   }
 
   before(async function () {
-    initNetwork()
+    await initNetwork()
     ;[governor] = await getAccounts()
   })
 

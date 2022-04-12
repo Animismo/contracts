@@ -38,7 +38,7 @@ function signPermit(
   chainId: number,
   contractAddress: string,
   permit: Permit,
-  salt: string
+  salt: string,
 ): Signature {
   const domainSeparator = eip712.domainSeparator({
     name: 'Graph Token',
@@ -54,7 +54,7 @@ function signPermit(
   return signingKey.signDigest(messageHash)
 }
 
-export function grtTests(isL2) {
+export function grtTests(isL2: boolean): void {
   let me: Account
   let other: Account
   let governor: Account
@@ -107,21 +107,20 @@ export function grtTests(isL2) {
   }
 
   before(async function () {
-    initNetwork()
+    await initNetwork()
     ;[me, other, governor] = await getAccounts()
   })
 
   beforeEach(async function () {
     // Deploy graph token
     if (isL2) {
-        const proxyAdmin = await deployment.deployProxyAdmin(governor.signer)
-        grt = await deployment.deployL2GRT(governor.signer, proxyAdmin)
-        salt = L2SALT
+      const proxyAdmin = await deployment.deployProxyAdmin(governor.signer)
+      grt = await deployment.deployL2GRT(governor.signer, proxyAdmin)
+      salt = L2SALT
     } else {
-        grt = await deployment.deployGRT(governor.signer)
-        salt = L1SALT
+      grt = await deployment.deployGRT(governor.signer)
+      salt = L1SALT
     }
-    
 
     // Mint some tokens
     const tokens = toGRT('10000')

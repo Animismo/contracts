@@ -15,19 +15,18 @@ describe('L2GraphToken', () => {
     let mockL2Gateway: Account
     let mockL1GRT: Account
     let governor: Account
-    let slasher: Account
     let user: Account
 
     let fixture: NetworkFixture
     let grt: L2GraphToken
 
     before(async function () {
-      initNetwork()
-      ;[mockL1GRT, mockL2Gateway, governor, user, slasher] = await getAccounts()
+      await initNetwork()
+      ;[mockL1GRT, mockL2Gateway, governor, user] = await getAccounts()
       fixture = new NetworkFixture()
-      ;({ grt } = await fixture.loadL2(governor.signer, slasher.signer))
+      ;({ grt } = await fixture.loadL2(governor.signer))
     })
-  
+
     beforeEach(async function () {
       await fixture.setUp()
     })
@@ -104,6 +103,5 @@ describe('L2GraphToken', () => {
         await expect(tx).revertedWith('Only minter can call')
       })
     })
-    
   })
 })

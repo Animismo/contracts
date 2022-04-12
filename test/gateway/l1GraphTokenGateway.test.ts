@@ -39,23 +39,23 @@ describe('L1GraphTokenGateway', () => {
 
   const senderTokens = toGRT('1000')
   const maxGas = toBN('1000000')
-  const maxSubmissionCost = toBN('7');
-  const gasPriceBid = toBN('2');
-  const defaultEthValue = maxSubmissionCost.add(maxGas.mul(gasPriceBid));
-  const emptyCallHookData = '0x';
+  const maxSubmissionCost = toBN('7')
+  const gasPriceBid = toBN('2')
+  const defaultEthValue = maxSubmissionCost.add(maxGas.mul(gasPriceBid))
+  const emptyCallHookData = '0x'
   const defaultData = utils.defaultAbiCoder.encode(
-      ['uint256', 'bytes'],
-      [maxSubmissionCost, emptyCallHookData],
-  );
-  const notEmptyCallHookData = '0x12';
-  const defaultDataWithNotEmptyCallHookData =
-    utils.defaultAbiCoder.encode(
-        ['uint256', 'bytes'],
-        [maxSubmissionCost, notEmptyCallHookData],
-    );
+    ['uint256', 'bytes'],
+    [maxSubmissionCost, emptyCallHookData],
+  )
+  const notEmptyCallHookData = '0x12'
+  const defaultDataWithNotEmptyCallHookData = utils.defaultAbiCoder.encode(
+    ['uint256', 'bytes'],
+    [maxSubmissionCost, notEmptyCallHookData],
+  )
 
   before(async function () {
-    ;[governor, tokenSender, l2Receiver, mockRouter, mockL2GRT, mockL2Gateway, pauseGuardian] = await getAccounts()
+    ;[governor, tokenSender, l2Receiver, mockRouter, mockL2GRT, mockL2Gateway, pauseGuardian] =
+      await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, l1GraphTokenGateway } = await fixture.load(governor.signer))
@@ -63,18 +63,9 @@ describe('L1GraphTokenGateway', () => {
     // Give some funds to the token sender
     await grt.connect(governor.signer).mint(tokenSender.address, senderTokens)
     // Deploy contracts that mock Arbitrum's bridge contracts
-    bridgeMock = (await deployContract(
-      'BridgeMock',
-      governor.signer,
-    )) as unknown as BridgeMock
-    inboxMock = (await deployContract(
-      'InboxMock',
-      governor.signer,
-    )) as unknown as InboxMock
-    outboxMock = (await deployContract(
-      'OutboxMock',
-      governor.signer,
-    )) as unknown as OutboxMock
+    bridgeMock = (await deployContract('BridgeMock', governor.signer)) as unknown as BridgeMock
+    inboxMock = (await deployContract('InboxMock', governor.signer)) as unknown as InboxMock
+    outboxMock = (await deployContract('OutboxMock', governor.signer)) as unknown as OutboxMock
   })
 
   beforeEach(async function () {
@@ -94,48 +85,51 @@ describe('L1GraphTokenGateway', () => {
 
     describe('outboundTransfer', function () {
       it('reverts because it is paused', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).outboundTransfer(
-          grt.address,
-          l2Receiver.address,
-          toGRT('10'),
-          maxGas,
-          gasPriceBid,
-          defaultData,
-          {
-            value: defaultEthValue
-          }
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .outboundTransfer(
+            grt.address,
+            l2Receiver.address,
+            toGRT('10'),
+            maxGas,
+            gasPriceBid,
+            defaultData,
+            {
+              value: defaultEthValue,
+            },
+          )
         await expect(tx).revertedWith('Paused (contract)')
       })
     })
 
     describe('finalizeInboundTransfer', function () {
       it('revert because it is paused', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).finalizeInboundTransfer(
-          grt.address,
-          l2Receiver.address,
-          tokenSender.address,
-          toGRT('10'),
-          defaultData
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .finalizeInboundTransfer(
+            grt.address,
+            l2Receiver.address,
+            tokenSender.address,
+            toGRT('10'),
+            defaultData,
+          )
         await expect(tx).revertedWith('Paused (contract)')
       })
     })
 
     describe('setArbitrumAddresses', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).setArbitrumAddresses(
-          inboxMock.address,
-          mockRouter.address
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .setArbitrumAddresses(inboxMock.address, mockRouter.address)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
       it('sets inbox and router address', async function () {
-        const tx = l1GraphTokenGateway.connect(governor.signer).setArbitrumAddresses(
-          inboxMock.address,
-          mockRouter.address
-        )
-        await expect(tx).emit(l1GraphTokenGateway, 'ArbitrumAddressesSet')
+        const tx = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setArbitrumAddresses(inboxMock.address, mockRouter.address)
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'ArbitrumAddressesSet')
           .withArgs(inboxMock.address, mockRouter.address)
         expect(await l1GraphTokenGateway.l1Router()).eq(mockRouter.address)
         expect(await l1GraphTokenGateway.inbox()).eq(inboxMock.address)
@@ -144,33 +138,31 @@ describe('L1GraphTokenGateway', () => {
 
     describe('setL2TokenAddress', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).setL2TokenAddress(
-          mockL2GRT.address
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .setL2TokenAddress(mockL2GRT.address)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
       it('sets l2GRT', async function () {
-        const tx = l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(
-          mockL2GRT.address
-        )
-        await expect(tx).emit(l1GraphTokenGateway, 'L2TokenAddressSet')
-          .withArgs(mockL2GRT.address)
+        const tx = l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(mockL2GRT.address)
+        await expect(tx).emit(l1GraphTokenGateway, 'L2TokenAddressSet').withArgs(mockL2GRT.address)
         expect(await l1GraphTokenGateway.l2GRT()).eq(mockL2GRT.address)
       })
     })
 
     describe('setL2CounterpartAddress', function () {
       it('is not callable by addreses that are not the governor', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).setL2CounterpartAddress(
-          mockL2Gateway.address
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .setL2CounterpartAddress(mockL2Gateway.address)
         await expect(tx).revertedWith('Caller must be Controller governor')
       })
       it('sets L2Counterpart', async function () {
-        const tx = l1GraphTokenGateway.connect(governor.signer).setL2CounterpartAddress(
-          mockL2Gateway.address
-        )
-        await expect(tx).emit(l1GraphTokenGateway, 'L2CounterpartAddressSet')
+        const tx = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setL2CounterpartAddress(mockL2Gateway.address)
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'L2CounterpartAddressSet')
           .withArgs(mockL2Gateway.address)
         expect(await l1GraphTokenGateway.l2Counterpart()).eq(mockL2Gateway.address)
       })
@@ -192,12 +184,18 @@ describe('L1GraphTokenGateway', () => {
       })
       describe('setPauseGuardian', function () {
         it('cannot be called by someone other than governor', async function () {
-          const tx = l1GraphTokenGateway.connect(tokenSender.signer).setPauseGuardian(pauseGuardian.address)
+          const tx = l1GraphTokenGateway
+            .connect(tokenSender.signer)
+            .setPauseGuardian(pauseGuardian.address)
           await expect(tx).revertedWith('Caller must be Controller governor')
         })
         it('sets a new pause guardian', async function () {
-          const tx = l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
-          await expect(tx).emit(l1GraphTokenGateway, 'NewPauseGuardian').withArgs(AddressZero, pauseGuardian.address)
+          const tx = l1GraphTokenGateway
+            .connect(governor.signer)
+            .setPauseGuardian(pauseGuardian.address)
+          await expect(tx)
+            .emit(l1GraphTokenGateway, 'NewPauseGuardian')
+            .withArgs(AddressZero, pauseGuardian.address)
         })
         it('allows a pause guardian to pause and unpause', async function () {
           await l1GraphTokenGateway.connect(governor.signer).setPauseGuardian(pauseGuardian.address)
@@ -213,18 +211,21 @@ describe('L1GraphTokenGateway', () => {
   })
 
   context('> after configuring and unpausing', function () {
-    const createMsgData = function() {
+    const createMsgData = function () {
       const selector = l1GraphTokenGateway.interface.getSighash('finalizeInboundTransfer')
       const params = utils.defaultAbiCoder.encode(
         ['address', 'address', 'address', 'uint256', 'bytes'],
-        [grt.address, tokenSender.address, l2Receiver.address, toGRT('10'), utils.defaultAbiCoder.encode(
-          ['bytes', 'bytes'],
-          [emptyCallHookData, emptyCallHookData]
-        )]
+        [
+          grt.address,
+          tokenSender.address,
+          l2Receiver.address,
+          toGRT('10'),
+          utils.defaultAbiCoder.encode(['bytes', 'bytes'], [emptyCallHookData, emptyCallHookData]),
+        ],
       )
-      const outboundData = utils.hexlify(utils.concat([ selector, params ]))
-      
-      let msgData = utils.solidityPack(
+      const outboundData = utils.hexlify(utils.concat([selector, params]))
+
+      const msgData = utils.solidityPack(
         [
           'uint256',
           'uint256',
@@ -235,7 +236,7 @@ describe('L1GraphTokenGateway', () => {
           'uint256',
           'uint256',
           'uint256',
-          'bytes'
+          'bytes',
         ],
         [
           toBN(mockL2Gateway.address),
@@ -247,46 +248,49 @@ describe('L1GraphTokenGateway', () => {
           maxGas,
           gasPriceBid,
           utils.hexDataLength(outboundData),
-          outboundData
-        ]
+          outboundData,
+        ],
       )
       return msgData
     }
-    const createInboxAccsEntry = function(msgDataHash: string) {
+    const createInboxAccsEntry = function (msgDataHash: string) {
       // The real bridge would emit the InboxAccs entry that came before this one, but our mock
       // emits this, making it easier for us to validate here that all the parameters we sent are correct
-      let expectedInboxAccsEntry = utils.keccak256(utils.solidityPack(
-        ['address', 'uint8', 'address', 'bytes32'],
-        [inboxMock.address, 9, l1GraphTokenGateway.address, msgDataHash]
-      ))
+      const expectedInboxAccsEntry = utils.keccak256(
+        utils.solidityPack(
+          ['address', 'uint8', 'address', 'bytes32'],
+          [inboxMock.address, 9, l1GraphTokenGateway.address, msgDataHash],
+        ),
+      )
       return expectedInboxAccsEntry
     }
-    const testValidOutboundTransfer = async function(signer: Signer, data: string) {
-      const tx = l1GraphTokenGateway.connect(signer).outboundTransfer(
-        grt.address,
-        l2Receiver.address,
-        toGRT('10'),
-        maxGas,
-        gasPriceBid,
-        data,
-        {
-          value: defaultEthValue
-        }
-      )
+    const testValidOutboundTransfer = async function (signer: Signer, data: string) {
+      const tx = l1GraphTokenGateway
+        .connect(signer)
+        .outboundTransfer(grt.address, l2Receiver.address, toGRT('10'), maxGas, gasPriceBid, data, {
+          value: defaultEthValue,
+        })
       // Our bridge mock returns an incrementing seqNum starting at 1
       const expectedSeqNum = 1
-      await expect(tx).emit(l1GraphTokenGateway, 'DepositInitiated')
+      await expect(tx)
+        .emit(l1GraphTokenGateway, 'DepositInitiated')
         .withArgs(grt.address, tokenSender.address, l2Receiver.address, expectedSeqNum, toGRT('10'))
 
-      
-      let msgData = createMsgData()
-      let msgDataHash = utils.keccak256(msgData)
-      let expectedInboxAccsEntry = createInboxAccsEntry(msgDataHash)
-      
-      await expect(tx).emit(inboxMock, 'InboxMessageDelivered')
-        .withArgs(1, msgData)
-      await expect(tx).emit(bridgeMock, 'MessageDelivered')
-        .withArgs(expectedSeqNum, expectedInboxAccsEntry, inboxMock.address, 9, l1GraphTokenGateway.address, msgDataHash)
+      const msgData = createMsgData()
+      const msgDataHash = utils.keccak256(msgData)
+      const expectedInboxAccsEntry = createInboxAccsEntry(msgDataHash)
+
+      await expect(tx).emit(inboxMock, 'InboxMessageDelivered').withArgs(1, msgData)
+      await expect(tx)
+        .emit(bridgeMock, 'MessageDelivered')
+        .withArgs(
+          expectedSeqNum,
+          expectedInboxAccsEntry,
+          inboxMock.address,
+          9,
+          l1GraphTokenGateway.address,
+          msgDataHash,
+        )
       const escrowBalance = await grt.balanceOf(l1GraphTokenGateway.address)
       const senderBalance = await grt.balanceOf(tokenSender.address)
       await expect(escrowBalance).eq(toGRT('10'))
@@ -300,16 +304,13 @@ describe('L1GraphTokenGateway', () => {
       await outboxMock.connect(governor.signer).setBridge(bridgeMock.address)
 
       // Configure the gateway
-      await l1GraphTokenGateway.connect(governor.signer).setArbitrumAddresses(
-        inboxMock.address,
-        mockRouter.address
-      )
-      await l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(
-        mockL2GRT.address
-      )
-      await l1GraphTokenGateway.connect(governor.signer).setL2CounterpartAddress(
-        mockL2Gateway.address
-      )
+      await l1GraphTokenGateway
+        .connect(governor.signer)
+        .setArbitrumAddresses(inboxMock.address, mockRouter.address)
+      await l1GraphTokenGateway.connect(governor.signer).setL2TokenAddress(mockL2GRT.address)
+      await l1GraphTokenGateway
+        .connect(governor.signer)
+        .setL2CounterpartAddress(mockL2Gateway.address)
       await l1GraphTokenGateway.connect(governor.signer).setPaused(false)
     })
 
@@ -318,23 +319,27 @@ describe('L1GraphTokenGateway', () => {
         expect(await l1GraphTokenGateway.calculateL2TokenAddress(grt.address)).eq(mockL2GRT.address)
       })
       it('returns the zero address if the input is any other address', async function () {
-        expect(await l1GraphTokenGateway.calculateL2TokenAddress(tokenSender.address)).eq(AddressZero)
+        expect(await l1GraphTokenGateway.calculateL2TokenAddress(tokenSender.address)).eq(
+          AddressZero,
+        )
       })
     })
 
     describe('outboundTransfer', function () {
       it('reverts when called with the wrong token address', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).outboundTransfer(
-          tokenSender.address,
-          l2Receiver.address,
-          toGRT('10'),
-          maxGas,
-          gasPriceBid,
-          defaultData,
-          {
-            value: defaultEthValue
-          }
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .outboundTransfer(
+            tokenSender.address,
+            l2Receiver.address,
+            toGRT('10'),
+            maxGas,
+            gasPriceBid,
+            defaultData,
+            {
+              value: defaultEthValue,
+            },
+          )
         await expect(tx).revertedWith('TOKEN_NOT_GRT')
       })
       it('puts tokens in escrow and creates a retryable ticket', async function () {
@@ -346,76 +351,85 @@ describe('L1GraphTokenGateway', () => {
         const routerEncodedData = utils.defaultAbiCoder.encode(
           ['address', 'bytes'],
           [tokenSender.address, defaultData],
-        );
+        )
         await testValidOutboundTransfer(mockRouter.signer, routerEncodedData)
       })
       it('reverts when called with the wrong value', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).outboundTransfer(
-          grt.address,
-          l2Receiver.address,
-          toGRT('10'),
-          maxGas,
-          gasPriceBid,
-          defaultData,
-          {
-            value: defaultEthValue.add(1)
-          }
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .outboundTransfer(
+            grt.address,
+            l2Receiver.address,
+            toGRT('10'),
+            maxGas,
+            gasPriceBid,
+            defaultData,
+            {
+              value: defaultEthValue.add(1),
+            },
+          )
         await expect(tx).revertedWith('WRONG_ETH_VALUE')
       })
       it('reverts when called with nonempty calldata', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).outboundTransfer(
-          grt.address,
-          l2Receiver.address,
-          toGRT('10'),
-          maxGas,
-          gasPriceBid,
-          defaultDataWithNotEmptyCallHookData,
-          {
-            value: defaultEthValue
-          }
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .outboundTransfer(
+            grt.address,
+            l2Receiver.address,
+            toGRT('10'),
+            maxGas,
+            gasPriceBid,
+            defaultDataWithNotEmptyCallHookData,
+            {
+              value: defaultEthValue,
+            },
+          )
         await expect(tx).revertedWith('CALL_HOOK_DATA_NOT_ALLOWED')
       })
       it('reverts when the sender does not have enough GRT', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('1001'))
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).outboundTransfer(
-          grt.address,
-          l2Receiver.address,
-          toGRT('1001'),
-          maxGas,
-          gasPriceBid,
-          defaultData,
-          {
-            value: defaultEthValue
-          }
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .outboundTransfer(
+            grt.address,
+            l2Receiver.address,
+            toGRT('1001'),
+            maxGas,
+            gasPriceBid,
+            defaultData,
+            {
+              value: defaultEthValue,
+            },
+          )
         await expect(tx).revertedWith('ERC20: transfer amount exceeds balance')
       })
     })
 
     describe('finalizeInboundTransfer', function () {
       it('reverts when called by an account that is not the bridge', async function () {
-        const tx = l1GraphTokenGateway.connect(tokenSender.signer).finalizeInboundTransfer(
-          grt.address,
-          l2Receiver.address,
-          tokenSender.address,
-          toGRT('10'),
-          defaultData
-        )
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .finalizeInboundTransfer(
+            grt.address,
+            l2Receiver.address,
+            tokenSender.address,
+            toGRT('10'),
+            defaultData,
+          )
         await expect(tx).revertedWith('NOT_FROM_BRIDGE')
       })
       it('reverts when called by the bridge, but the tx was not started by the L2 gateway', async function () {
-        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData('finalizeInboundTransfer',
+        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
+          'finalizeInboundTransfer',
           [
             grt.address,
             l2Receiver.address,
             tokenSender.address,
             toGRT('10'),
-            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []])
-          ]
+            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []]),
+          ],
         )
         // The real outbox would require a proof, which would
         // validate that the tx was initiated by the L2 gateway but our mock
@@ -430,68 +444,75 @@ describe('L1GraphTokenGateway', () => {
           await latestBlock(),
           toBN('133701337'),
           toBN('0'),
-          encodedCalldata
+          encodedCalldata,
         )
         await expect(tx).revertedWith('ONLY_COUNTERPART_GATEWAY')
       })
       it('reverts if the gateway does not have tokens', async function () {
         // This scenario should never really happen, but we still
         // test that the gateway reverts in this case
-        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData('finalizeInboundTransfer',
+        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
+          'finalizeInboundTransfer',
           [
             grt.address,
             l2Receiver.address,
             tokenSender.address,
             toGRT('10'),
-            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []])
-          ]
+            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []]),
+          ],
         )
         // The real outbox would require a proof, which would
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
-        const tx = outboxMock.connect(tokenSender.signer).executeTransaction(
-          toBN('0'),
-          [],
-          toBN('0'),
-          mockL2Gateway.address,
-          l1GraphTokenGateway.address,
-          toBN('1337'),
-          await latestBlock(),
-          toBN('133701337'),
-          toBN('0'),
-          encodedCalldata
-        )
+        const tx = outboxMock
+          .connect(tokenSender.signer)
+          .executeTransaction(
+            toBN('0'),
+            [],
+            toBN('0'),
+            mockL2Gateway.address,
+            l1GraphTokenGateway.address,
+            toBN('1337'),
+            await latestBlock(),
+            toBN('133701337'),
+            toBN('0'),
+            encodedCalldata,
+          )
         await expect(tx).revertedWith('BRIDGE_OUT_OF_FUNDS')
       })
       it('sends tokens out of escrow', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(tokenSender.signer, defaultData)
         // At this point, the gateway holds 10 GRT in escrow
-        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData('finalizeInboundTransfer',
+        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
+          'finalizeInboundTransfer',
           [
             grt.address,
             l2Receiver.address,
             tokenSender.address,
             toGRT('8'),
-            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []])
-          ]
+            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []]),
+          ],
         )
         // The real outbox would require a proof, which would
         // validate that the tx was initiated by the L2 gateway but our mock
         // just executes unconditionally
-        const tx = outboxMock.connect(tokenSender.signer).executeTransaction(
-          toBN('0'),
-          [],
-          toBN('0'),
-          mockL2Gateway.address,
-          l1GraphTokenGateway.address,
-          toBN('1337'),
-          await latestBlock(),
-          toBN('133701337'),
-          toBN('0'),
-          encodedCalldata
-        )
-        await expect(tx).emit(l1GraphTokenGateway, 'WithdrawalFinalized')
+        const tx = outboxMock
+          .connect(tokenSender.signer)
+          .executeTransaction(
+            toBN('0'),
+            [],
+            toBN('0'),
+            mockL2Gateway.address,
+            l1GraphTokenGateway.address,
+            toBN('1337'),
+            await latestBlock(),
+            toBN('133701337'),
+            toBN('0'),
+            encodedCalldata,
+          )
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'WithdrawalFinalized')
           .withArgs(grt.address, l2Receiver.address, tokenSender.address, toBN('0'), toGRT('8'))
         const escrowBalance = await grt.balanceOf(l1GraphTokenGateway.address)
         const senderBalance = await grt.balanceOf(tokenSender.address)

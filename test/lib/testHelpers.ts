@@ -28,9 +28,9 @@ export const provider = (): providers.JsonRpcProvider => hre.waffle.provider
 // Enable automining with each transaction, and disable
 // the mining interval. Individual tests may modify this
 // behavior as needed.
-export function initNetwork() {
-  provider().send('evm_setIntervalMining', [0])
-  provider().send('evm_setAutomine', [true])
+export async function initNetwork(): Promise<void> {
+  await provider().send('evm_setIntervalMining', [0])
+  await provider().send('evm_setAutomine', [true])
 }
 
 export const getAccounts = async (): Promise<Account[]> => {
@@ -126,9 +126,9 @@ export const deriveChannelKey = (): ChannelKey => {
 // https://github.com/livepeer/arbitrum-lpt-bridge/blob/e1a81edda3594e434dbcaa4f1ebc95b7e67ecf2a/utils/arbitrum/messaging.ts#L118
 export const applyL1ToL2Alias = (l1Address: string): string => {
   const offset = toBN('0x1111000000000000000000000000000000001111')
-  const l1AddressAsNumber = toBN(l1Address);
-  const l2AddressAsNumber = l1AddressAsNumber.add(offset);
+  const l1AddressAsNumber = toBN(l1Address)
+  const l2AddressAsNumber = l1AddressAsNumber.add(offset)
 
-  const mask = toBN(2).pow(160);
-  return l2AddressAsNumber.mod(mask).toHexString();
+  const mask = toBN(2).pow(160)
+  return l2AddressAsNumber.mod(mask).toHexString()
 }

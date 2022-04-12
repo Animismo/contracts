@@ -56,12 +56,7 @@ let allContracts = [
 // ]
 //
 // But for now we'll only include a subset:
-const l2Contracts = [
-  'GraphProxyAdmin',
-  'Controller',
-  'L2GraphToken',
-  'L2GraphTokenGateway',
-]
+const l2Contracts = ['GraphProxyAdmin', 'Controller', 'L2GraphToken', 'L2GraphTokenGateway']
 
 const l2ChainIds = [42161, 421611]
 

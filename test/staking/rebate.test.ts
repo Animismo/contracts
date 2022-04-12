@@ -186,7 +186,7 @@ describe('Staking:Rebate', () => {
   }
 
   beforeEach(async function () {
-    initNetwork()
+    await initNetwork()
     ;[deployer] = await getAccounts()
     rebatePoolMock = (await deployContract(
       'RebatePoolMock',

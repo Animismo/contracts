@@ -24,7 +24,7 @@ describe('EpochManager', () => {
   const epochLength: BigNumber = toBN('3')
 
   before(async function () {
-    initNetwork()
+    await initNetwork()
     ;[me, governor] = await getAccounts()
   })
 

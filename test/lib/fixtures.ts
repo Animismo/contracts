@@ -2,7 +2,7 @@
 import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert, provider, initNetwork } from './testHelpers'
+import { evmSnapshot, evmRevert, initNetwork } from './testHelpers'
 
 export class NetworkFixture {
   lastSnapshotId: number
@@ -16,8 +16,7 @@ export class NetworkFixture {
     slasher: Signer = Wallet.createRandom() as Signer,
     arbitrator: Signer = Wallet.createRandom() as Signer,
   ): Promise<any> {
-    
-    initNetwork()
+    await initNetwork()
 
     // Roles
     const arbitratorAddress = await arbitrator.getAddress()
@@ -98,26 +97,14 @@ export class NetworkFixture {
     }
   }
 
-  async loadL2(
-    deployer: Signer,
-    slasher: Signer = Wallet.createRandom() as Signer,
-    arbitrator: Signer = Wallet.createRandom() as Signer,
-  ): Promise<any> {
-
-    initNetwork()
-
-    // Roles
-    const arbitratorAddress = await arbitrator.getAddress()
-    const slasherAddress = await slasher.getAddress()
+  async loadL2(deployer: Signer): Promise<any> {
+    await initNetwork()
 
     // Deploy contracts
     const proxyAdmin = await deployment.deployProxyAdmin(deployer)
     const controller = await deployment.deployController(deployer)
 
-    const grt = await deployment.deployL2GRT(
-      deployer,
-      proxyAdmin,
-    )
+    const grt = await deployment.deployL2GRT(deployer, proxyAdmin)
 
     const l2GraphTokenGateway = await deployment.deployL2GraphTokenGateway(
       deployer,
