@@ -21,7 +21,7 @@ import { GraphGovernance } from '../build/types/GraphGovernance'
 import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 import { L2GraphToken } from '../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../build/types/L2GraphTokenGateway'
-import { providerNetworkIsL2 } from './utils'
+import { chainIdIsL2 } from './utils'
 
 export interface NetworkContracts {
   EpochManager: EpochManager
@@ -58,6 +58,7 @@ export const loadAddressBookContract = (
 
 export const loadContracts = (
   addressBook: AddressBook,
+  chainId: number | string,
   signerOrProvider?: Signer | providers.Provider,
 ): NetworkContracts => {
   const contracts = {}
@@ -67,7 +68,7 @@ export const loadContracts = (
       // On L2 networks, we alias L2GraphToken as GraphToken
       if (
         signerOrProvider &&
-        providerNetworkIsL2(signerOrProvider) &&
+        chainIdIsL2(chainId) &&
         contractName == 'L2GraphToken'
       ) {
         contracts['GraphToken'] = contracts[contractName]
