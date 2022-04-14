@@ -31,13 +31,3 @@ export const getProvider = (providerUrl: string, network?: number): providers.Js
 export const chainIdIsL2 = (chainId: number | string): boolean => {
   return l2ChainIds.includes(Number(chainId))
 }
-
-export const providerNetworkIsL2 = (signerOrProvider: Signer | providers.Provider): boolean => {
-  let chainId: number
-  if (signerOrProvider instanceof Signer) {
-    chainId = ((signerOrProvider as Signer).provider as JsonRpcProvider).network.chainId
-  } else {
-    chainId = (signerOrProvider as JsonRpcProvider).network.chainId
-  }
-  return chainIdIsL2(chainId)
-}
