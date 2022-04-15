@@ -66,11 +66,7 @@ export const loadContracts = (
     try {
       contracts[contractName] = loadAddressBookContract(contractName, addressBook, signerOrProvider)
       // On L2 networks, we alias L2GraphToken as GraphToken
-      if (
-        signerOrProvider &&
-        chainIdIsL2(chainId) &&
-        contractName == 'L2GraphToken'
-      ) {
+      if (signerOrProvider && chainIdIsL2(chainId) && contractName == 'L2GraphToken') {
         contracts['GraphToken'] = contracts[contractName]
       }
     } catch (err) {

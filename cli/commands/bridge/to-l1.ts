@@ -10,6 +10,32 @@ import {
   L2ToL1MessageStatus,
   L2ToL1MessageWriter,
 } from '@arbitrum/sdk'
+import { L2GraphTokenGateway } from '../../../build/types/L2GraphTokenGateway'
+import { BigNumber } from 'ethers'
+import { JsonRpcProvider } from '@ethersproject/providers'
+
+const FOURTEEN_DAYS_IN_SECONDS = 24 * 3600 * 14
+
+const BLOCK_SEARCH_THRESHOLD = 6 * 3600
+const searchForArbBlockByTimestamp = async (
+  l2Provider: JsonRpcProvider,
+  timestamp: number,
+): Promise<number> => {
+  let step = 131072
+  let block = await l2Provider.getBlock('latest')
+  while (block.timestamp > timestamp) {
+    block = await l2Provider.getBlock(block.number - step)
+  }
+  while (step > 1 && Math.abs(block.timestamp - timestamp) > BLOCK_SEARCH_THRESHOLD) {
+    step = Math.round(step / 2)
+    if (block.timestamp - timestamp > 0) {
+      block = await l2Provider.getBlock(block.number - step)
+    } else {
+      block = await l2Provider.getBlock(block.number + step)
+    }
+  }
+  return block.number
+}
 
 const wait = (ms: number): Promise<void> => {
   return new Promise((res) => setTimeout(res, ms))
@@ -96,8 +122,36 @@ export const finishSendToL1 = async (
     )
   }
 
-  const receipt = await l2Provider.getTransactionReceipt(cliArgs.txHash)
+  const l2AddressBook = getAddressBook(cliArgs.addressBook, l2ChainId.toString())
+
+  const gateway = loadAddressBookContract(
+    'L2GraphTokenGateway',
+    l2AddressBook,
+    l2Provider,
+  ) as L2GraphTokenGateway
+  let txHash: string
+  if (cliArgs.txHash) {
+    txHash = cliArgs.txHash
+  } else {
+    logger.info(
+      `Looking for withdrawals initiated by ${cli.wallet.address} in roughly the last 14 days`,
+    )
+    const fromBlock = await searchForArbBlockByTimestamp(
+      l2Provider,
+      Math.round(Date.now() / 1000) - FOURTEEN_DAYS_IN_SECONDS,
+    )
+    const filt = gateway.filters.WithdrawalInitiated(null, cli.wallet.address)
+    const allEvents = await gateway.queryFilter(filt, BigNumber.from(fromBlock).toHexString())
+    if (allEvents.length == 0) {
+      throw new Error('No withdrawals found')
+    }
+    txHash = allEvents[allEvents.length - 1].transactionHash
+  }
+  logger.info(`Getting receipt from transaction ${txHash}`)
+  const receipt = await l2Provider.getTransactionReceipt(txHash)
+
   const l2Receipt = new L2TransactionReceipt(receipt)
+  logger.info(`Getting L2 to L1 message...`)
   const l2ToL1Message = (
     await l2Receipt.getL2ToL1Messages(cli.wallet, await getL2Network(l2Provider))
   )[0]
@@ -109,6 +163,7 @@ export const finishSendToL1 = async (
       logger.info('Still waiting...')
     })
   } else {
+    logger.info('Checking if L2 to L1 message is confirmed...')
     const status = await l2ToL1Message.status(null)
     if (status != L2ToL1MessageStatus.CONFIRMED) {
       throw new Error(
@@ -139,17 +194,20 @@ export const startSendToL1Command = {
 }
 
 export const finishSendToL1Command = {
-  command: 'finish-send-to-l1 <txHash>',
-  describe: 'Finish an L2-to-L1 Graph Token transaction. L2 dispute period must have completed',
+  command: 'finish-send-to-l1 [txHash]',
+  describe:
+    'Finish an L2-to-L1 Graph Token transaction. L2 dispute period must have completed. ' +
+    'If txHash is not specified, the last withdrawal from the main account in the past 14 days will be redeemed.',
   handler: async (argv: CLIArgs): Promise<void> => {
     return finishSendToL1(await loadEnv(argv), argv, false)
   },
 }
 
 export const waitFinishSendToL1Command = {
-  command: 'wait-finish-send-to-l1 <txHash> [retryDelaySeconds]',
+  command: 'wait-finish-send-to-l1 [txHash] [retryDelaySeconds]',
   describe:
-    "Wait for an L2-to-L1 Graph Token transaction's dispute period to complete (which takes about a week), and then finalize it",
+    "Wait for an L2-to-L1 Graph Token transaction's dispute period to complete (which takes about a week), and then finalize it. " +
+    'If txHash is not specified, the last withdrawal from the main account in the past 14 days will be redeemed.',
   handler: async (argv: CLIArgs): Promise<void> => {
     return finishSendToL1(await loadEnv(argv), argv, true)
   },

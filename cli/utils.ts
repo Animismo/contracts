@@ -1,5 +1,4 @@
-import { JsonRpcProvider } from '@ethersproject/providers'
-import { Contract, Wallet, providers, Signer } from 'ethers'
+import { Contract, Wallet, providers } from 'ethers'
 
 import { loadArtifact } from './artifacts'
 
