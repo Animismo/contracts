@@ -24,6 +24,9 @@ const searchForArbBlockByTimestamp = async (
   let step = 131072
   let block = await l2Provider.getBlock('latest')
   while (block.timestamp > timestamp) {
+    while (block.number - step < 0) {
+      step = Math.round(step / 2)
+    }
     block = await l2Provider.getBlock(block.number - step)
   }
   while (step > 1 && Math.abs(block.timestamp - timestamp) > BLOCK_SEARCH_THRESHOLD) {
