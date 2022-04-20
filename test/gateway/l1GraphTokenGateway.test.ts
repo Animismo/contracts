@@ -18,6 +18,7 @@ import {
   Account,
   applyL1ToL2Alias,
 } from '../lib/testHelpers'
+import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 
 const { AddressZero } = constants
 
@@ -33,6 +34,7 @@ describe('L1GraphTokenGateway', () => {
 
   let grt: GraphToken
   let l1GraphTokenGateway: L1GraphTokenGateway
+  let bridgeEscrow: BridgeEscrow
   let bridgeMock: BridgeMock
   let inboxMock: InboxMock
   let outboxMock: OutboxMock
@@ -58,7 +60,7 @@ describe('L1GraphTokenGateway', () => {
       await getAccounts()
 
     fixture = new NetworkFixture()
-    ;({ grt, l1GraphTokenGateway } = await fixture.load(governor.signer))
+    ;({ grt, l1GraphTokenGateway, bridgeEscrow } = await fixture.load(governor.signer))
 
     // Give some funds to the token sender
     await grt.connect(governor.signer).mint(tokenSender.address, senderTokens)
@@ -165,6 +167,23 @@ describe('L1GraphTokenGateway', () => {
           .emit(l1GraphTokenGateway, 'L2CounterpartAddressSet')
           .withArgs(mockL2Gateway.address)
         expect(await l1GraphTokenGateway.l2Counterpart()).eq(mockL2Gateway.address)
+      })
+    })
+    describe('setEscrowAddress', function () {
+      it('is not callable by addreses that are not the governor', async function () {
+        const tx = l1GraphTokenGateway
+          .connect(tokenSender.signer)
+          .setEscrowAddress(bridgeEscrow.address)
+        await expect(tx).revertedWith('Caller must be Controller governor')
+      })
+      it('sets escrow', async function () {
+        const tx = l1GraphTokenGateway
+          .connect(governor.signer)
+          .setEscrowAddress(bridgeEscrow.address)
+        await expect(tx)
+          .emit(l1GraphTokenGateway, 'EscrowAddressSet')
+          .withArgs(bridgeEscrow.address)
+        expect(await l1GraphTokenGateway.escrow()).eq(bridgeEscrow.address)
       })
     })
     describe('Pausable behavior', () => {
@@ -291,7 +310,7 @@ describe('L1GraphTokenGateway', () => {
           l1GraphTokenGateway.address,
           msgDataHash,
         )
-      const escrowBalance = await grt.balanceOf(l1GraphTokenGateway.address)
+      const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
       const senderBalance = await grt.balanceOf(tokenSender.address)
       await expect(escrowBalance).eq(toGRT('10'))
       await expect(senderBalance).eq(toGRT('990'))
@@ -311,6 +330,8 @@ describe('L1GraphTokenGateway', () => {
       await l1GraphTokenGateway
         .connect(governor.signer)
         .setL2CounterpartAddress(mockL2Gateway.address)
+      await l1GraphTokenGateway.connect(governor.signer).setEscrowAddress(bridgeEscrow.address)
+      await bridgeEscrow.connect(governor.signer).approveAll(l1GraphTokenGateway.address)
       await l1GraphTokenGateway.connect(governor.signer).setPaused(false)
     })
 
@@ -480,6 +501,41 @@ describe('L1GraphTokenGateway', () => {
           )
         await expect(tx).revertedWith('BRIDGE_OUT_OF_FUNDS')
       })
+      it('reverts if the gateway is revoked from escrow', async function () {
+        await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
+        await testValidOutboundTransfer(tokenSender.signer, defaultData)
+        // At this point, the gateway holds 10 GRT in escrow
+        // But we revoke the gateway's permission to move the funds:
+        await bridgeEscrow.connect(governor.signer).revokeAll(l1GraphTokenGateway.address)
+        const encodedCalldata = l1GraphTokenGateway.interface.encodeFunctionData(
+          'finalizeInboundTransfer',
+          [
+            grt.address,
+            l2Receiver.address,
+            tokenSender.address,
+            toGRT('8'),
+            utils.defaultAbiCoder.encode(['uint256', 'bytes'], [0, []]),
+          ],
+        )
+        // The real outbox would require a proof, which would
+        // validate that the tx was initiated by the L2 gateway but our mock
+        // just executes unconditionally
+        const tx = outboxMock
+          .connect(tokenSender.signer)
+          .executeTransaction(
+            toBN('0'),
+            [],
+            toBN('0'),
+            mockL2Gateway.address,
+            l1GraphTokenGateway.address,
+            toBN('1337'),
+            await latestBlock(),
+            toBN('133701337'),
+            toBN('0'),
+            encodedCalldata,
+          )
+        await expect(tx).revertedWith('ERC20: transfer amount exceeds allowance')
+      })
       it('sends tokens out of escrow', async function () {
         await grt.connect(tokenSender.signer).approve(l1GraphTokenGateway.address, toGRT('10'))
         await testValidOutboundTransfer(tokenSender.signer, defaultData)
@@ -514,7 +570,7 @@ describe('L1GraphTokenGateway', () => {
         await expect(tx)
           .emit(l1GraphTokenGateway, 'WithdrawalFinalized')
           .withArgs(grt.address, l2Receiver.address, tokenSender.address, toBN('0'), toGRT('8'))
-        const escrowBalance = await grt.balanceOf(l1GraphTokenGateway.address)
+        const escrowBalance = await grt.balanceOf(bridgeEscrow.address)
         const senderBalance = await grt.balanceOf(tokenSender.address)
         await expect(escrowBalance).eq(toGRT('2'))
         await expect(senderBalance).eq(toGRT('998'))

@@ -119,3 +119,7 @@ contracts:
     proxy: true
     init:
       controller: "${{Controller.address}}"
+  BridgeEscrow:
+    proxy: true
+    init:
+      controller: "${{Controller.address}}"

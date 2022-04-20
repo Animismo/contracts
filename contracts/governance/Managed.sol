@@ -182,5 +182,6 @@ contract Managed {
         _syncContract("RewardsManager");
         _syncContract("Staking");
         _syncContract("GraphToken");
+        _syncContract("GraphTokenGateway");
     }
 }

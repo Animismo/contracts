@@ -24,6 +24,7 @@ import { SubgraphNFT } from '../../build/types/SubgraphNFT'
 import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 
 // Disable logging for tests
 logger.pause()
@@ -283,6 +284,19 @@ export async function deployL1GraphTokenGateway(
     [controller],
     deployer,
   ) as unknown as L1GraphTokenGateway
+}
+
+export async function deployBridgeEscrow(
+  deployer: Signer,
+  controller: string,
+  proxyAdmin: GraphProxyAdmin,
+): Promise<BridgeEscrow> {
+  return network.deployContractWithProxy(
+    proxyAdmin,
+    'BridgeEscrow',
+    [controller],
+    deployer,
+  ) as unknown as BridgeEscrow
 }
 
 export async function deployL2GraphTokenGateway(

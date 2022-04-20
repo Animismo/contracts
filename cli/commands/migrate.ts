@@ -33,6 +33,7 @@ let allContracts = [
   'DisputeManager',
   'AllocationExchange',
   'L1GraphTokenGateway',
+  'BridgeEscrow',
 ]
 
 // This is all we'll want to deploy to L2 eventually:

@@ -28,6 +28,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     address public l1Router;
     // Address of the L2GraphTokenGateway on L2 that is the counterpart of this gateway
     address public l2Counterpart;
+    // Address of the BridgeEscrow contract that holds the GRT in the bridge
+    address public escrow;
 
     // Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
@@ -53,6 +55,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     event L2TokenAddressSet(address _l2GRT);
     // Emitted when the counterpart L2GraphTokenGateway address has been updated
     event L2CounterpartAddressSet(address _l2Counterpart);
+    // Emitted when the escrow address has been updated
+    event EscrowAddressSet(address _escrow);
 
     /**
      * @dev Allows a function to be called only by the gateway's L2 counterpart.
@@ -110,6 +114,15 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     }
 
     /**
+     * @dev Sets the address of the escrow contract on L1
+     * @param _escrow Address of the BridgeEscrow
+     */
+    function setEscrowAddress(address _escrow) external onlyGovernor {
+        escrow = _escrow;
+        emit EscrowAddressSet(_escrow);
+    }
+
+    /**
      * @notice Creates and sends a retryable ticket to transfer GRT to L2 using the Arbitrum Inbox.
      * The tokens are escrowed by the gateway until they are withdrawn back to L1.
      * The ticket must be redeemed on L2 to receive tokens at the specified address.
@@ -162,7 +175,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
                     _gasPriceBid
                 );
                 // transfer tokens to escrow
-                token.transferFrom(from, address(this), _amount);
+                token.transferFrom(from, escrow, _amount);
                 seqNum = sendTxToL2(
                     inbox,
                     l2Counterpart,
@@ -200,10 +213,10 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
         require(_l1Token == address(token), "TOKEN_NOT_GRT");
         (uint256 exitNum, ) = abi.decode(_data, (uint256, bytes));
 
-        uint256 escrowBalance = token.balanceOf(address(this));
+        uint256 escrowBalance = token.balanceOf(escrow);
         // If the bridge doesn't have enough tokens, something's very wrong!
         require(_amount <= escrowBalance, "BRIDGE_OUT_OF_FUNDS");
-        token.transfer(_to, _amount);
+        token.transferFrom(escrow, _to, _amount);
 
         emit WithdrawalFinalized(_l1Token, _from, _to, exitNum, _amount);
     }

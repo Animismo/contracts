@@ -57,6 +57,12 @@ export class NetworkFixture {
       proxyAdmin,
     )
 
+    const bridgeEscrow = await deployment.deployBridgeEscrow(
+      deployer,
+      controller.address,
+      proxyAdmin,
+    )
+
     // Setup controller
     await controller.setContractProxy(utils.id('EpochManager'), epochManager.address)
     await controller.setContractProxy(utils.id('GraphToken'), grt.address)
@@ -74,6 +80,8 @@ export class NetworkFixture {
     await disputeManager.connect(deployer).syncAllContracts()
     await rewardsManager.connect(deployer).syncAllContracts()
     await staking.connect(deployer).syncAllContracts()
+    await l1GraphTokenGateway.connect(deployer).syncAllContracts()
+    await bridgeEscrow.connect(deployer).syncAllContracts()
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await grt.connect(deployer).addMinter(rewardsManager.address)
@@ -94,6 +102,7 @@ export class NetworkFixture {
       serviceRegistry,
       proxyAdmin,
       l1GraphTokenGateway,
+      bridgeEscrow,
     }
   }
 
@@ -117,6 +126,7 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('GraphTokenGateway'), l2GraphTokenGateway.address)
 
     // Setup contracts
+    await l2GraphTokenGateway.connect(deployer).syncAllContracts()
     await grt.connect(deployer).addMinter(l2GraphTokenGateway.address)
 
     // Unpause the protocol
