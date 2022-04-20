@@ -53,6 +53,7 @@ export const gettersList = {
   'controller-get-pause-guardian': { contract: 'Controller', name: 'pauseGuardian' },
   'l1-gateway-l2-grt': { contract: 'L1GraphTokenGateway', name: 'l2GRT' },
   'l1-gateway-inbox': { contract: 'L1GraphTokenGateway', name: 'inbox' },
+  'l1-gateway-escrow': { contract: 'L1GraphTokenGateway', name: 'escrow' },
   'l1-gateway-l1-router': { contract: 'L1GraphTokenGateway', name: 'l1Router' },
   'l1-gateway-l2-counterpart': { contract: 'L1GraphTokenGateway', name: 'l2Counterpart' },
   'l1-gateway-paused': { contract: 'L1GraphTokenGateway', name: 'paused' },

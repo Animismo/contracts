@@ -21,6 +21,7 @@ import { GraphGovernance } from '../build/types/GraphGovernance'
 import { L1GraphTokenGateway } from '../build/types/L1GraphTokenGateway'
 import { L2GraphToken } from '../build/types/L2GraphToken'
 import { L2GraphTokenGateway } from '../build/types/L2GraphTokenGateway'
+import { BridgeEscrow } from '../build/types/BridgeEscrow'
 import { chainIdIsL2 } from './utils'
 
 export interface NetworkContracts {
@@ -39,6 +40,7 @@ export interface NetworkContracts {
   IEthereumDIDRegistry: IEthereumDIDRegistry
   GraphGovernance: GraphGovernance
   L1GraphTokenGateway: L1GraphTokenGateway
+  BridgeEscrow: BridgeEscrow
   L2GraphToken: L2GraphToken
   L2GraphTokenGateway: L2GraphTokenGateway
 }
