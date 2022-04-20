@@ -68,7 +68,13 @@ export const settersList = {
     contract: 'L1GraphTokenGateway',
     name: 'setL2CounterpartAddress',
   },
+  'l1-gateway-set-escrow-address': {
+    contract: 'L1GraphTokenGateway',
+    name: 'setEscrowAddress',
+  },
   'l1-gateway-set-paused': { contract: 'L1GraphTokenGateway', name: 'setPaused' },
+  'bridge-escrow-approve-all': { contract: 'BridgeEscrow', name: 'approveAll' },
+  'bridge-escrow-revoke-all': { contract: 'BridgeEscrow', name: 'revokeAll' },
   'l2-gateway-set-l1-grt': { contract: 'L2GraphTokenGateway', name: 'setL1TokenAddress' },
   'l2-gateway-set-l2-router': { contract: 'L2GraphTokenGateway', name: 'setL2Router' },
   'l2-gateway-set-l1-counterpart': {

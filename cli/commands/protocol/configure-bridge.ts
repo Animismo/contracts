@@ -25,6 +25,11 @@ export const configureL1Bridge = async (cli: CLIEnvironment, cliArgs: CLIArgs): 
   logger.info('L2 Gateway address: ' + l2Counterpart.address)
   await sendTransaction(cli.wallet, gateway, 'setL2CounterpartAddress', [l2Counterpart.address])
 
+  const bridgeEscrow = cli.contracts.BridgeEscrow
+  logger.info('Escrow address: ' + bridgeEscrow.address)
+  await sendTransaction(cli.wallet, gateway, 'setEscrowAddress', [bridgeEscrow.address])
+  await sendTransaction(cli.wallet, bridgeEscrow, 'approveAll', [gateway.address])
+
   const l1Inbox = arbAddressBook.getEntry('IInbox')
   const l1Router = arbAddressBook.getEntry('L1GatewayRouter')
   logger.info(
