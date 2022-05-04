@@ -21,3 +21,8 @@ contract RewardsManagerV1Storage is Managed {
     // Subgraph denylist : subgraph deployment ID => block when added or zero (if not denied)
     mapping(bytes32 => uint256) public denylist;
 }
+
+contract RewardsManagerV2Storage is RewardsManagerV1Storage {
+    // Snapshot of the total supply of GRT when accRewardsPerSignal was last updated
+    uint256 public tokenSupplySnapshot;
+}
