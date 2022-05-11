@@ -196,16 +196,25 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
      * @param _from Address of the sender on L1
      * @param _to Recipient address on L2
      * @param _amount Amount of tokens transferred
+     * @param _data Extra callhook data, only used when the sender is the L1 Reservoir
      */
     function finalizeInboundTransfer(
         address _l1Token,
         address _from,
         address _to,
         uint256 _amount,
-        bytes calldata // _data unused in L2
+        bytes calldata _data
     ) external payable override notPaused onlyL1Counterpart {
         require(_l1Token == l1GRT, "TOKEN_NOT_GRT");
         require(msg.value == 0, "INVALID_NONZERO_VALUE");
+
+        if (_from == l1ReservoirAddress && _to == l2ReservoirAddress) {
+            bytes memory gatewayData;
+            bytes memory callhookData;
+            (gatewayData, callhookData) = abi.decode(_data, (bytes, bytes));
+            uint256 normalizedTokenSupply = abi.decode(callhookData, (uint256));
+            L2Reservoir(_to).receiveDrip(normalizedTokenSupply);
+        }
 
         L2GraphToken(calculateL2TokenAddress(l1GRT)).bridgeMint(_to, _amount);
 

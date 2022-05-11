@@ -30,6 +30,8 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
     address public l2Counterpart;
     // Address of the BridgeEscrow contract that holds the GRT in the bridge
     address public escrow;
+    // Address of the L1 Reservoir that is the only sender allowed to send extra data
+    address public reservoir;
 
     // Emitted when an outbound transfer is initiated, i.e. tokens are deposited from L1 to L2
     event DepositInitiated(
@@ -156,7 +158,7 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
             {
                 bytes memory extraData;
                 (from, maxSubmissionCost, extraData) = parseOutboundData(_data);
-                require(extraData.length == 0, "CALL_HOOK_DATA_NOT_ALLOWED");
+                require(extraData.length == 0 || msg.sender == reservoir, "CALL_HOOK_DATA_NOT_ALLOWED");
                 require(maxSubmissionCost > 0, "NO_SUBMISSION_COST");
 
                 {
