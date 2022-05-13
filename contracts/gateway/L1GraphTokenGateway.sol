@@ -182,7 +182,10 @@ contract L1GraphTokenGateway is GraphTokenGateway, L1ArbitrumMessenger {
             {
                 bytes memory extraData;
                 (from, maxSubmissionCost, extraData) = parseOutboundData(_data);
-                require(extraData.length == 0 || callhookWhitelist[msg.sender] == true, "CALL_HOOK_DATA_NOT_ALLOWED");
+                require(
+                    extraData.length == 0 || callhookWhitelist[msg.sender] == true,
+                    "CALL_HOOK_DATA_NOT_ALLOWED"
+                );
                 require(maxSubmissionCost > 0, "NO_SUBMISSION_COST");
 
                 {

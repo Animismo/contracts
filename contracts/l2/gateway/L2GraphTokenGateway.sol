@@ -67,7 +67,7 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
     // Emitted when an address is removed from the callhook whitelist
     event RemovedFromCallhookWhitelist(address notWhitelisted);
     // Emitted when a callhook call failed
-    event CallhookFailed(address destination, bytes returnData);
+    event CallhookFailed(address destination);
 
     /**
      * @dev Checks that the sender is the L2 alias of the counterpart
@@ -237,19 +237,18 @@ contract L2GraphTokenGateway is GraphTokenGateway, L2ArbitrumMessenger {
 
         if (_data.length > 0 && callhookWhitelist[_from] == true) {
             bytes memory callhookData;
-            bytes memory returnData;
             {
                 bytes memory gatewayData;
                 (gatewayData, callhookData) = abi.decode(_data, (bytes, bytes));
             }
             bool success;
             // solhint-disable-next-line avoid-low-level-calls
-            (success, returnData) = _to.call(callhookData);
+            (success, ) = _to.call(callhookData);
             // Callhooks shouldn't revert, but if they do:
             // We don't want to revert if the callhook failed,
             // to prevent the tokens staying locked in the bridge.
             if (!success) {
-                emit CallhookFailed(_to, returnData);
+                emit CallhookFailed(_to);
             }
         }
 
