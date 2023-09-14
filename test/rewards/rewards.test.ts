@@ -2,14 +2,13 @@ import { expect } from 'chai'
 import { constants, BigNumber } from 'ethers'
 import { BigNumber as BN } from 'bignumber.js'
 
-import { deployContract } from '../lib/deployment'
 import { NetworkFixture } from '../lib/fixtures'
 
 import { Curation } from '../../build/types/Curation'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { RewardsManager } from '../../build/types/RewardsManager'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import {
   advanceBlocks,
@@ -23,6 +22,7 @@ import {
   Account,
   advanceToNextEpoch,
   provider,
+  advanceBlock,
 } from '../lib/testHelpers'
 
 const MAX_PPM = 1000000
@@ -39,24 +39,27 @@ describe('Rewards', () => {
   let indexer1: Account
   let indexer2: Account
   let oracle: Account
+  let assetHolder: Account
 
   let fixture: NetworkFixture
 
   let grt: GraphToken
   let curation: Curation
   let epochManager: EpochManager
-  let staking: Staking
+  let staking: IStaking
   let rewardsManager: RewardsManager
 
   // Derive some channel keys for each indexer used to sign attestations
   const channelKey1 = deriveChannelKey()
   const channelKey2 = deriveChannelKey()
+  const channelKeyNull = deriveChannelKey()
 
   const subgraphDeploymentID1 = randomHexBytes()
   const subgraphDeploymentID2 = randomHexBytes()
 
   const allocationID1 = channelKey1.address
   const allocationID2 = channelKey2.address
+  const allocationIDNull = channelKeyNull.address
 
   const metadata = HashZero
 
@@ -131,7 +134,8 @@ describe('Rewards', () => {
   }
 
   before(async function () {
-    ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle] = await getAccounts()
+    ;[delegator, governor, curator1, curator2, indexer1, indexer2, oracle, assetHolder] =
+      await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ grt, curation, epochManager, staking, rewardsManager } = await fixture.load(
@@ -142,7 +146,7 @@ describe('Rewards', () => {
     await rewardsManager.connect(governor.signer).setIssuancePerBlock(ISSUANCE_PER_BLOCK)
 
     // Distribute test funds
-    for (const wallet of [indexer1, indexer2, curator1, curator2]) {
+    for (const wallet of [indexer1, indexer2, curator1, curator2, assetHolder]) {
       await grt.connect(governor.signer).mint(wallet.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(staking.address, toGRT('1000000'))
       await grt.connect(wallet.signer).approve(curation.address, toGRT('1000000'))
@@ -486,6 +490,41 @@ describe('Rewards', () => {
 
         const expectedRewards = contractRewardsAT1.mul(tokensToAllocate).div(WeiPerEther)
         expect(expectedRewards).eq(contractRewards)
+      })
+      it('rewards should be zero if the allocation is closed', async function () {
+        // Update total signalled
+        const signalled1 = toGRT('1500')
+        await curation.connect(curator1.signer).mint(subgraphDeploymentID1, signalled1, 0)
+
+        // Allocate
+        const tokensToAllocate = toGRT('12500')
+        await staking.connect(indexer1.signer).stake(tokensToAllocate)
+        await staking
+          .connect(indexer1.signer)
+          .allocateFrom(
+            indexer1.address,
+            subgraphDeploymentID1,
+            tokensToAllocate,
+            allocationID1,
+            metadata,
+            await channelKey1.generateProof(indexer1.address),
+          )
+
+        // Jump
+        await advanceBlocks(ISSUANCE_RATE_PERIODS)
+        await advanceToNextEpoch(epochManager)
+
+        // Close allocation
+        await staking.connect(indexer1.signer).closeAllocation(allocationID1, randomHexBytes())
+
+        // Rewards
+        const contractRewards = await rewardsManager.getRewards(allocationID1)
+        expect(contractRewards).eq(BigNumber.from(0))
+      })
+      it('rewards should be zero if the allocation does not exist', async function () {
+        // Rewards
+        const contractRewards = await rewardsManager.getRewards(allocationIDNull)
+        expect(contractRewards).eq(BigNumber.from(0))
       })
     })
 
@@ -953,6 +992,71 @@ describe('Rewards', () => {
       const event1 = rewardsManager.interface.parseLog(receipt.logs[1]).args
       const event2 = rewardsManager.interface.parseLog(receipt.logs[5]).args
       expect(event1.amount).eq(event2.amount)
+    })
+  })
+
+  describe('rewards progression when collecting query fees', function () {
+    it('collect query fees with two subgraphs and one allocation', async function () {
+      async function getRewardsAccrual(subgraphs) {
+        const [sg1, sg2] = await Promise.all(
+          subgraphs.map((sg) => rewardsManager.getAccRewardsForSubgraph(sg)),
+        )
+        return {
+          sg1,
+          sg2,
+          all: sg1.add(sg2),
+        }
+      }
+
+      // set curation percentage
+      await staking.setCurationPercentage(100000)
+
+      // allow the asset holder
+      const tokensToCollect = toGRT('10000')
+      await staking.connect(governor.signer).setAssetHolder(assetHolder.address, true)
+
+      // signal in two subgraphs in the same block
+      const subgraphs = [subgraphDeploymentID1, subgraphDeploymentID2]
+      for (const sub of subgraphs) {
+        await curation.connect(curator1.signer).mint(sub, toGRT('1500'), 0)
+      }
+
+      // snapshot block before any accrual (we substract 1 because accrual starts after the first mint happens)
+      const b1 = await epochManager.blockNum().then((x) => x.toNumber() - 1)
+
+      // allocate
+      const tokensToAllocate = toGRT('12500')
+      await staking
+        .connect(indexer1.signer)
+        .multicall([
+          await staking.populateTransaction.stake(tokensToAllocate).then((tx) => tx.data),
+          await staking.populateTransaction
+            .allocateFrom(
+              indexer1.address,
+              subgraphDeploymentID1,
+              tokensToAllocate,
+              allocationID1,
+              metadata,
+              await channelKey1.generateProof(indexer1.address),
+            )
+            .then((tx) => tx.data),
+        ])
+
+      // move time fwd
+      await advanceBlock()
+
+      // collect funds into staking for that sub
+      await staking.connect(assetHolder.signer).collect(tokensToCollect, allocationID1)
+
+      // check rewards diff
+      await rewardsManager.getRewards(allocationID1).then(formatGRT)
+
+      await advanceBlock()
+      const accrual = await getRewardsAccrual(subgraphs)
+      const b2 = await epochManager.blockNum().then((x) => x.toNumber())
+
+      // round comparison because there is a small precision error due to dividing and accrual per signal
+      expect(toRound(accrual.all)).eq(toRound(ISSUANCE_PER_BLOCK.mul(b2 - b1)))
     })
   })
 })

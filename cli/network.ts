@@ -18,6 +18,9 @@ import { AddressBook } from './address-book'
 import { loadArtifact } from './artifacts'
 import { defaultOverrides } from './defaults'
 import { GraphToken } from '../build/types/GraphToken'
+import { Interface } from 'ethers/lib/utils'
+import { IL1Staking } from '../build/types/IL1Staking'
+import { IL2Staking } from '../build/types/IL2Staking'
 
 const { keccak256, randomBytes, parseUnits, hexlify } = utils
 
@@ -35,7 +38,7 @@ export const getChainID = (): number => {
 
 export const hashHexString = (input: string): string => keccak256(`0x${input.replace(/^0x/, '')}`)
 
-type ContractParam = string | BigNumber | number
+type ContractParam = string | BigNumber | number | { [key: string]: any }
 type DeployResult = {
   contract: Contract
   creationCodeHash: string
@@ -65,7 +68,12 @@ export const isContractDeployed = async (
 
   if (checkCreationCode) {
     const savedCreationCodeHash = addressEntry.creationCodeHash
-    const creationCodeHash = hashHexString(artifact.bytecode)
+    let creationCodeHash: string
+    try {
+      creationCodeHash = hashHexString(artifact.bytecode)
+    } catch (error) {
+      // Noop - assume contract is not deployed
+    }
     if (!savedCreationCodeHash || savedCreationCodeHash !== creationCodeHash) {
       logger.warn(`creationCodeHash in our address book doesn't match ${name} artifacts`)
       logger.info(`${savedCreationCodeHash} !== ${creationCodeHash}`)
@@ -197,7 +205,7 @@ export const deployContract = async (
 
   // Deploy
   const factory = getContractFactory(name, libraries)
-  const contract = await factory.connect(sender).deploy(...args)
+  let contract = await factory.connect(sender).deploy(...args)
   const txHash = contract.deployTransaction.hash
   logger.info(`> Deploy ${name}, txHash: ${txHash}`)
   await sender.provider.waitForTransaction(txHash)
@@ -209,6 +217,15 @@ export const deployContract = async (
   logger.info(`= RuntimeCodeHash: ${runtimeCodeHash}`)
   logger.info(`${name} has been deployed to address: ${contract.address}`)
 
+  if (name == 'L1Staking') {
+    // Hack the contract into behaving like an IL1Staking
+    const iface = new Interface(loadArtifact('IL1Staking').abi)
+    contract = new Contract(contract.address, iface, sender) as unknown as IL1Staking
+  } else if (name == 'L2Staking') {
+    // Hack the contract into behaving like an IL2Staking
+    const iface = new Interface(loadArtifact('IL2Staking').abi)
+    contract = new Contract(contract.address, iface, sender) as unknown as IL2Staking
+  }
   return { contract, creationCodeHash, runtimeCodeHash, txHash, libraries }
 }
 
@@ -298,6 +315,34 @@ export const deployContractAndSave = async (
         ? deployResult.libraries
         : undefined,
   })
+  logger.info('> Contract saved to address book')
+
+  return deployResult.contract
+}
+
+export const deployContractImplementationAndSave = async (
+  name: string,
+  args: Array<ContractParam>,
+  sender: Signer,
+  addressBook: AddressBook,
+): Promise<Contract> => {
+  // Deploy the contract
+  const deployResult = await deployContract(name, args, sender)
+
+  // Save address entry
+  const entry = addressBook.getEntry(name)
+  entry.implementation = {
+    address: deployResult.contract.address,
+    constructorArgs: args.length === 0 ? undefined : args.map((e) => e.toString()),
+    creationCodeHash: deployResult.creationCodeHash,
+    runtimeCodeHash: deployResult.runtimeCodeHash,
+    txHash: deployResult.txHash,
+    libraries:
+      deployResult.libraries && Object.keys(deployResult.libraries).length > 0
+        ? deployResult.libraries
+        : undefined,
+  }
+  addressBook.setEntry(name, entry)
   logger.info('> Contract saved to address book')
 
   return deployResult.contract

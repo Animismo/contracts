@@ -2,7 +2,7 @@
 import { utils, Wallet, Signer } from 'ethers'
 
 import * as deployment from './deployment'
-import { evmSnapshot, evmRevert, initNetwork, toBN } from './testHelpers'
+import { evmSnapshot, evmRevert, initNetwork } from './testHelpers'
 import { BridgeMock } from '../../build/types/BridgeMock'
 import { InboxMock } from '../../build/types/InboxMock'
 import { OutboxMock } from '../../build/types/OutboxMock'
@@ -12,8 +12,11 @@ import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
 import { Curation } from '../../build/types/Curation'
-import { GNS } from '../../build/types/GNS'
-import { Staking } from '../../build/types/Staking'
+import { L2Curation } from '../../build/types/L2Curation'
+import { L1GNS } from '../../build/types/L1GNS'
+import { L2GNS } from '../../build/types/L2GNS'
+import { IL1Staking } from '../../build/types/IL1Staking'
+import { IL2Staking } from '../../build/types/IL2Staking'
 import { RewardsManager } from '../../build/types/RewardsManager'
 import { ServiceRegistry } from '../../build/types/ServiceRegistry'
 import { GraphProxyAdmin } from '../../build/types/GraphProxyAdmin'
@@ -21,6 +24,7 @@ import { L1GraphTokenGateway } from '../../build/types/L1GraphTokenGateway'
 import { BridgeEscrow } from '../../build/types/BridgeEscrow'
 import { L2GraphTokenGateway } from '../../build/types/L2GraphTokenGateway'
 import { L2GraphToken } from '../../build/types/L2GraphToken'
+import { LibExponential } from '../../build/types/LibExponential'
 
 export interface L1FixtureContracts {
   controller: Controller
@@ -28,8 +32,9 @@ export interface L1FixtureContracts {
   epochManager: EpochManager
   grt: GraphToken
   curation: Curation
-  gns: GNS
-  staking: Staking
+  gns: L1GNS
+  staking: IL1Staking
+  libExponential: LibExponential
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
@@ -42,9 +47,10 @@ export interface L2FixtureContracts {
   disputeManager: DisputeManager
   epochManager: EpochManager
   grt: L2GraphToken
-  curation: Curation
-  gns: GNS
-  staking: Staking
+  curation: L2Curation
+  gns: L2GNS
+  staking: IL2Staking
+  libExponential: LibExponential
   rewardsManager: RewardsManager
   serviceRegistry: ServiceRegistry
   proxyAdmin: GraphProxyAdmin
@@ -91,9 +97,22 @@ export class NetworkFixture {
       grt = await deployment.deployGRT(deployer)
     }
 
-    const curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
-    const gns = await deployment.deployGNS(deployer, controller.address, proxyAdmin)
-    const staking = await deployment.deployStaking(deployer, controller.address, proxyAdmin)
+    let curation: Curation | L2Curation
+    if (isL2) {
+      curation = await deployment.deployL2Curation(deployer, controller.address, proxyAdmin)
+    } else {
+      curation = await deployment.deployCuration(deployer, controller.address, proxyAdmin)
+    }
+    let gns: L1GNS | L2GNS
+    let staking: IL1Staking | IL2Staking
+    if (isL2) {
+      gns = await deployment.deployL2GNS(deployer, controller.address, proxyAdmin)
+      staking = await deployment.deployL2Staking(deployer, controller.address, proxyAdmin)
+    } else {
+      gns = await deployment.deployL1GNS(deployer, controller.address, proxyAdmin)
+      staking = await deployment.deployL1Staking(deployer, controller.address, proxyAdmin)
+    }
+    const libExponential = await deployment.deployLibExponential(deployer)
     const disputeManager = await deployment.deployDisputeManager(
       deployer,
       controller.address,
@@ -137,6 +156,7 @@ export class NetworkFixture {
     await controller.setContractProxy(utils.id('DisputeManager'), staking.address)
     await controller.setContractProxy(utils.id('RewardsManager'), rewardsManager.address)
     await controller.setContractProxy(utils.id('ServiceRegistry'), serviceRegistry.address)
+    await controller.setContractProxy(utils.id('GNS'), gns.address)
     if (isL2) {
       await controller.setContractProxy(utils.id('GraphTokenGateway'), l2GraphTokenGateway.address)
     } else {
@@ -160,9 +180,7 @@ export class NetworkFixture {
 
     await staking.connect(deployer).setSlasher(slasherAddress, true)
     await gns.connect(deployer).approveAll()
-    if (!isL2) {
-      await grt.connect(deployer).addMinter(rewardsManager.address)
-    }
+    await grt.connect(deployer).addMinter(rewardsManager.address)
 
     // Unpause the protocol
     await controller.connect(deployer).setPaused(false)
@@ -176,6 +194,7 @@ export class NetworkFixture {
         curation,
         gns,
         staking,
+        libExponential,
         rewardsManager,
         serviceRegistry,
         proxyAdmin,
@@ -190,6 +209,7 @@ export class NetworkFixture {
         curation,
         gns,
         staking,
+        libExponential,
         rewardsManager,
         serviceRegistry,
         proxyAdmin,
@@ -233,6 +253,8 @@ export class NetworkFixture {
     mockRouterAddress: string,
     mockL2GRTAddress: string,
     mockL2GatewayAddress: string,
+    mockL2GNSAddress: string,
+    mockL2StakingAddress: string,
   ): Promise<any> {
     // First configure the Arbitrum bridge mocks
     await arbitrumMocks.bridgeMock.connect(deployer).setInbox(arbitrumMocks.inboxMock.address, true)
@@ -258,6 +280,16 @@ export class NetworkFixture {
     await l1FixtureContracts.bridgeEscrow
       .connect(deployer)
       .approveAll(l1FixtureContracts.l1GraphTokenGateway.address)
+    await l1FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL2GNSAddress)
+    await l1FixtureContracts.l1GraphTokenGateway
+      .connect(deployer)
+      .addToCallhookAllowlist(l1FixtureContracts.gns.address)
+    await l1FixtureContracts.staking
+      .connect(deployer)
+      .setCounterpartStakingAddress(mockL2StakingAddress)
+    await l1FixtureContracts.l1GraphTokenGateway
+      .connect(deployer)
+      .addToCallhookAllowlist(l1FixtureContracts.staking.address)
     await l1FixtureContracts.l1GraphTokenGateway.connect(deployer).setPaused(false)
   }
 
@@ -267,6 +299,8 @@ export class NetworkFixture {
     mockRouterAddress: string,
     mockL1GRTAddress: string,
     mockL1GatewayAddress: string,
+    mockL1GNSAddress: string,
+    mockL1StakingAddress: string,
   ): Promise<any> {
     // Configure the L2 GRT
     // Configure the gateway
@@ -282,6 +316,10 @@ export class NetworkFixture {
     await l2FixtureContracts.l2GraphTokenGateway
       .connect(deployer)
       .setL1CounterpartAddress(mockL1GatewayAddress)
+    await l2FixtureContracts.gns.connect(deployer).setCounterpartGNSAddress(mockL1GNSAddress)
+    await l2FixtureContracts.staking
+      .connect(deployer)
+      .setCounterpartStakingAddress(mockL1StakingAddress)
     await l2FixtureContracts.l2GraphTokenGateway.connect(deployer).setPaused(false)
   }
 

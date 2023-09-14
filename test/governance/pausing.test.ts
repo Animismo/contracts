@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { constants } from 'ethers'
 
 import { Controller } from '../../build/types/Controller'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { getAccounts, Account, toGRT } from '../lib/testHelpers'
 import { NetworkFixture } from '../lib/fixtures'
@@ -14,7 +14,7 @@ describe('Pausing', () => {
 
   let fixture: NetworkFixture
 
-  let staking: Staking
+  let staking: IStaking
   let controller: Controller
 
   const setPartialPause = async (account: Account, setValue: boolean) => {
@@ -65,8 +65,8 @@ describe('Pausing', () => {
     await setPartialPause(guardian, false)
   })
   it('should fail partial pause if not guardian or governor', async function () {
-    const tx = controller.connect(me.signer).setPauseGuardian(guardian.address)
-    await expect(tx).revertedWith('Only Governor can call')
+    const tx = controller.connect(me.signer).setPartialPaused(true)
+    await expect(tx).revertedWith('Only Governor or Guardian can call')
   })
   it('should check that a function fails when partialPause is set', async function () {
     await setPartialPause(governor, true)

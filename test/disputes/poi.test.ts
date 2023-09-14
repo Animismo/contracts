@@ -4,7 +4,7 @@ import { utils } from 'ethers'
 import { DisputeManager } from '../../build/types/DisputeManager'
 import { EpochManager } from '../../build/types/EpochManager'
 import { GraphToken } from '../../build/types/GraphToken'
-import { Staking } from '../../build/types/Staking'
+import { IStaking } from '../../build/types/IStaking'
 
 import { NetworkFixture } from '../lib/fixtures'
 import {
@@ -27,6 +27,7 @@ describe('DisputeManager:POI', async () => {
   let governor: Account
   let arbitrator: Account
   let indexer: Account
+  let rewardsDestination: Account
   let fisherman: Account
   let assetHolder: Account
 
@@ -35,7 +36,7 @@ describe('DisputeManager:POI', async () => {
   let disputeManager: DisputeManager
   let epochManager: EpochManager
   let grt: GraphToken
-  let staking: Staking
+  let staking: IStaking
 
   // Derive some channel keys for each indexer used to sign attestations
   const indexerChannelKey = deriveChannelKey()
@@ -91,7 +92,8 @@ describe('DisputeManager:POI', async () => {
   }
 
   before(async function () {
-    ;[other, governor, arbitrator, indexer, fisherman, assetHolder] = await getAccounts()
+    ;[other, governor, arbitrator, indexer, fisherman, assetHolder, rewardsDestination] =
+      await getAccounts()
 
     fixture = new NetworkFixture()
     ;({ disputeManager, epochManager, grt, staking } = await fixture.load(
@@ -159,6 +161,8 @@ describe('DisputeManager:POI', async () => {
       const receipt1 = await tx1.wait()
       const event1 = staking.interface.parseLog(receipt1.logs[0]).args
       await advanceToNextEpoch(epochManager) // wait the required one epoch to close allocation
+      // set rewards destination so collected query fees are not added to indexer balance
+      await staking.connect(indexer.signer).setRewardsDestination(rewardsDestination.address)
       await staking.connect(assetHolder.signer).collect(indexerCollectedTokens, event1.allocationID)
       await staking.connect(indexer.signer).closeAllocation(event1.allocationID, poi)
       await staking.connect(indexer.signer).unstake(indexerTokens)
